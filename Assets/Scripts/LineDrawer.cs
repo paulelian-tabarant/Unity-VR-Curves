@@ -13,6 +13,7 @@ public class LineDrawer : MonoBehaviour {
 
     // File writing
     private readonly string filePath = "Assets/Output/data.txt";
+    private readonly string numberFormat = "0.000000";
     private StreamWriter writer;
     private bool newLine = true;
     private readonly string sep = "; ";
@@ -75,10 +76,17 @@ public class LineDrawer : MonoBehaviour {
     private void SaveLocalFrame(Transform frame) {
         Vector3 globalPos = frame.position;
         Quaternion globalRot = frame.rotation;
+        string x = globalPos.x.ToString(numberFormat);
+        string y = globalPos.y.ToString(numberFormat);
+        string z = globalPos.z.ToString(numberFormat);
+        string q0 = globalRot.w.ToString(numberFormat);
+        string q1 = globalRot.x.ToString(numberFormat);
+        string q2 = globalRot.y.ToString(numberFormat);
+        string q3 = globalRot.z.ToString(numberFormat);
 
         string data = Time.time + sep
-                    + globalPos.ToString() + sep
-                    + globalRot.ToString();
+                    + '(' + x + ',' + y + ',' + z + ')' + sep
+                    + '(' + q0 + ',' + q1 + ',' + q2 + ',' + q3 + ')';
         writer.WriteLine(data);
     }
 
