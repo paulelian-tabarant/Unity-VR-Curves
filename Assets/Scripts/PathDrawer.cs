@@ -26,7 +26,7 @@ public class PathDrawer : MonoBehaviour {
     private readonly string filePath = "Assets/Output/data.txt";
     private readonly string numberFormat = "0.000000";
     private StreamWriter writer;
-    private readonly string sep = "; ";
+    private readonly char _ = ' ';
 
     // Accessing controller input via Controller reference for ease.
     private SteamVR_Controller.Device Controller {
@@ -82,7 +82,7 @@ public class PathDrawer : MonoBehaviour {
     private void SavePoint(StreamWriter writer, Coords point) {
         Vector3 globalPos = point.pos;
         Quaternion globalRot = point.rot;
-        float time = point.t;
+        string time = point.t.ToString(numberFormat);
         string x = globalPos.x.ToString(numberFormat);
         string y = globalPos.y.ToString(numberFormat);
         string z = globalPos.z.ToString(numberFormat);
@@ -91,9 +91,7 @@ public class PathDrawer : MonoBehaviour {
         string q2 = globalRot.y.ToString(numberFormat);
         string q3 = globalRot.z.ToString(numberFormat);
 
-        string data = time + sep
-                    + '(' + x + ',' + y + ',' + z + ')' + sep
-                    + '(' + q0 + ',' + q1 + ',' + q2 + ',' + q3 + ')';
+        string data = time + _ + x + _ + y + _ + z + _ + q0 + _ + q1 + _ + q2 + _ + q3;
         writer.WriteLine(data);
     }
 
