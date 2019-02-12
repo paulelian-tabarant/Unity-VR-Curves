@@ -16,7 +16,8 @@ public class PathMeshRenderer : MonoBehaviour {
         pathMesh = new GameObject("Path mesh");
     }
 
-    // Methods below are from the Road Mesh Creator example.
+    // Methods below are inspired of the Path Creator source code by Sebastian Lague
+    // https://github.com/SebLague/Path-Creator/blob/master/PathCreator/Examples/Scripts/RoadMeshCreator.cs
 
     /// <summary>
     /// Create a mesh from current stored path. 
