@@ -110,7 +110,7 @@ public class PathMeshRenderer : MonoBehaviour {
         mesh.SetTriangles(underPathTriangles, 1);
         mesh.SetTriangles(sideOfPathTriangles, 2);
         mesh.RecalculateBounds();
-
+        
         return mesh;
     }
 
@@ -139,7 +139,8 @@ public class PathMeshRenderer : MonoBehaviour {
     /// </summary>
     void AssignMaterials() {
         if (pathMaterial != null) {
-            meshRenderer.sharedMaterials = new Material[] { pathMaterial };
+            // Assign given material to the 3 submeshes
+            meshRenderer.sharedMaterials = new Material[] { pathMaterial, pathMaterial, pathMaterial };
         }
     }
 
