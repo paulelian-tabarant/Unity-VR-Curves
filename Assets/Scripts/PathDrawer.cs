@@ -6,8 +6,8 @@ public class PathDrawer : MonoBehaviour {
     // Stores a reference to the controller object data
     private SteamVR_TrackedObject trackedObj;
 
-    // Line drawing useful attributes
-    private struct Coords {
+    // Curves storage useful attributes
+    public struct Coords {
         public Vector3 pos;
         public Quaternion rot;
         public float t;
@@ -21,6 +21,9 @@ public class PathDrawer : MonoBehaviour {
     private List<Coords>[] pathsArray;
     private const int MAXSIZE = 100;
     private int pathIndex = 0;
+
+    // Curves rendering
+    private PathMeshRenderer renderer;
 
     // File writing
     private readonly string filePath = "Assets/Output/data.txt";
@@ -38,8 +41,8 @@ public class PathDrawer : MonoBehaviour {
     }
 
     private void Start() {
-        // ... Nothing to do for the moment.
         pathsArray = new List<Coords>[MAXSIZE];
+        renderer = GetComponent<PathMeshRenderer>();
     }
 
     private void Update() {
@@ -50,6 +53,7 @@ public class PathDrawer : MonoBehaviour {
         } else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
             AddPointToCurPath(Time.time, trackedObj.transform);
         } else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
+            renderer.RenderCurve(pathsArray[pathIndex]);
             EndCurPath();
         }
     }
