@@ -21,6 +21,7 @@ public class PathDrawer : MonoBehaviour {
     private List<Coords>[] pathsArray;
     private const int MAXSIZE = 100;
     private int pathIndex = 0;
+    private DrawingToolCoords drawingToolCoords;
 
     // Curves rendering
     private PathMeshRenderer curveRenderer;
@@ -42,6 +43,7 @@ public class PathDrawer : MonoBehaviour {
 
     private void Start() {
         pathsArray = new List<Coords>[MAXSIZE];
+        drawingToolCoords = GameObject.FindGameObjectWithTag("LeftController").GetComponent<DrawingToolCoords>();
         curveRenderer= GetComponent<PathMeshRenderer>();
     }
 
@@ -74,7 +76,8 @@ public class PathDrawer : MonoBehaviour {
     /// </summary>
     /// <param name="coord">The {position; rotation} transform to be added</param>
     private void AddPointToCurPath(float time, Transform coord) {
-        Coords point = new Coords(time, coord.position, coord.rotation);
+        Quaternion rotation = drawingToolCoords.GetDrawingOrientation();
+        Coords point = new Coords(time, coord.position, rotation);
         pathsArray[pathIndex].Add(point);
         SavePoint(writer, point);
     }
