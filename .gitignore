@@ -35,7 +35,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 
-# Output files
-Assets/Output/
-Assets/Output/data.txt
 Assets/Output/data.txt

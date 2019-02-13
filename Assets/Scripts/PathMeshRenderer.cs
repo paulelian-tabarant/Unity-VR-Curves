@@ -7,44 +7,55 @@ public class PathMeshRenderer : MonoBehaviour {
     public float pathThickness, pathWidth;
 
     // Path rendering
-    private GameObject pathMesh;
+    private List<GameObject> pathsMeshes;
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
 
-	// Use this for initialization
-	void Start () {
-        pathMesh = new GameObject("Path mesh");
-	}
+    // Use this for initialization
+    void Start() {
+        pathsMeshes = new List<GameObject>();
+    }
 
-    // Methods below are from the Road Mesh Creator example.
-/*
+    // Methods below are inspired of the Path Creator source code by Sebastian Lague
+    // https://github.com/SebLague/Path-Creator/blob/master/PathCreator/Examples/Scripts/RoadMeshCreator.cs
+
     /// <summary>
     /// Create a mesh from current stored path. 
     /// </summary>
     /// <returns>the corresponding mesh object</returns>
-    private Mesh CreateMeshFromBezierPath(BezierPath bPath) {
-        VertexPath vPath = new VertexPath(bPath);
-        Vector3[] verts = new Vector3[vPath.NumVertices * 8];
+    private Mesh CreateMeshFromCurve(List<PathDrawer.Coords> curve) {
+        Vector3[] verts = new Vector3[(curve.Count - 1) * 8];
         Vector2[] uvs = new Vector2[verts.Length];
         Vector3[] normals = new Vector3[verts.Length];
 
-        int numTris = 2 * (vPath.NumVertices - 1);
+        int numTris = 2 * (curve.Count - 1);
         int[] pathTriangles = new int[numTris * 3];
         int[] underPathTriangles = new int[numTris * 3];
         int[] sideOfPathTriangles = new int[numTris * 2 * 3];
 
         int vertIndex = 0;
         int triIndex = 0;
-        int[] triangleMap = { 0, 8, 1, 1, 8, 9 };
-using PathCreation;
-        int[] sidesTriangleMap = { 4, 6, 14, 12, 4, 14, 5, 15, 7, 13, 15, 5 };
+        int[] triangleMap = { 0, 1, 8, 1, 9, 8 };
+        int[] sidesTriangleMap = { 4, 14, 6, 12, 14, 4, 5, 7, 15, 13, 5, 15 };
 
-        for (int i = 0; i < vPath.NumVertices; i++) {
-            Vector3 localUp = Vector3.Cross(vPath.tangents[i], vPath.normals[i]);
-            Vector3 localRight = Vector3.Cross(localUp, vPath.tangents[i]);
+        // Compute curve length in order to interpolate UV coordinates
+        float curveLength = .0f;
+        for(int i = 0; i < curve.Count - 1; i++) {
+            curveLength += Mathf.Abs((curve[i + 1].pos - curve[i].pos).magnitude);
+        }
 
-            Vector3 leftSide = vPath.vertices[i] - localRight * Mathf.Abs(pathWidth);
-            Vector3 rightSide = vPath.vertices[i] + localRight * Mathf.Abs(pathWidth);
+        float dst = .0f;
+        for (int i = 0; i < curve.Count - 1; i++) {
+            Vector3 vertex = curve[i].pos;
+            Vector3 nextVertex = curve[i + 1].pos;
+            Vector3 normal = curve[i].rot * Vector3.up;
+
+            Vector3 tangent = Vector3.Normalize(nextVertex - vertex);
+            Vector3 localUp = normal;
+            Vector3 localRight = Vector3.Cross(tangent, normal);
+
+            Vector3 leftSide = vertex - localRight * Mathf.Abs(pathWidth);
+            Vector3 rightSide = vertex + localRight * Mathf.Abs(pathWidth);
 
             // Top of path vertices
             verts[vertIndex + 0] = leftSide;
@@ -58,37 +69,37 @@ using PathCreation;
             verts[vertIndex + 6] = verts[vertIndex + 2];
             verts[vertIndex + 7] = verts[vertIndex + 3];
 
-            // uv coordinates on y axis to path normalized length (=times field)
-            uvs[vertIndex + 0] = new Vector2(0, vPath.times[i]);
-            uvs[vertIndex + 1] = new Vector2(1, vPath.times[i]);
+            // uv coordinates on y axis to path normalized length 
+            uvs[vertIndex + 0] = new Vector2(0, dst / curveLength);
+            uvs[vertIndex + 1] = new Vector2(1, dst / curveLength);
 
-            // Top of road normals
+            // Top of curve normals
             normals[vertIndex + 0] = localUp;
             normals[vertIndex + 1] = localUp;
-            // Bottom of road normals
+            // Bottom of curve normals
             normals[vertIndex + 2] = -localUp;
             normals[vertIndex + 3] = -localUp;
-            // Sides of road normals
+            // Sides of curve normals
             normals[vertIndex + 4] = -localRight;
             normals[vertIndex + 5] = localRight;
             normals[vertIndex + 6] = -localRight;
             normals[vertIndex + 7] = localRight;
 
-            // Index triangles
-            // condition for the path extremity
-            if (i < vPath.NumVertices - 1) { 
+            // Index triangles on vertices 
+            // Call procedure for each vertex except the last (reason for the condition)
+            if (i < curve.Count - 2) {
                 for (int j = 0; j < triangleMap.Length; j++) {
                     pathTriangles[triIndex + j] = vertIndex + triangleMap[j];
-using PathCreation;
                     underPathTriangles[triIndex + j] = vertIndex + triangleMap[triangleMap.Length - 1 - j] + 2;
                 }
                 for (int j = 0; j < sidesTriangleMap.Length; j++) {
                     sideOfPathTriangles[triIndex * 2 + j] = vertIndex + sidesTriangleMap[j];
                 }
             }
-        //pathMeshRenderer = GetComponent<PathMeshRenderer>();
             vertIndex += 8;
             triIndex += 6;
+            // Store the current discretized distance on curve
+            dst += (nextVertex - vertex).magnitude;
         }
 
         Mesh mesh = new Mesh();
@@ -100,40 +111,45 @@ using PathCreation;
         mesh.SetTriangles(underPathTriangles, 1);
         mesh.SetTriangles(sideOfPathTriangles, 2);
         mesh.RecalculateBounds();
-
+        
         return mesh;
     }
-            // Render the line on screen
 
-    // Add MeshRenderer and MeshFilter components to this gameobject if not already attached
+    /// <summary>
+    /// Add MeshFilter & MeshRenderer to a new GameObject, 
+    /// storing references into meshFilter & meshRenderer attributes for future uses
+    /// </summary>
     void AssignMeshComponents() {
-        Transform meshHolder = pathMesh.transform;
+        // Instantiate a new GameObject in order to store the new 3D curve 
+        GameObject curve = new GameObject("Curve number " + pathsMeshes.Count);
+        pathsMeshes.Add(curve);
+        Transform meshHolder = curve.transform;
 
-        meshHolder.transform.position = Vector3.zero;
-        meshHolder.transform.rotation = Quaternion.identity;
+        meshHolder.position = Vector3.zero;
+        meshHolder.rotation = Quaternion.identity;
 
         // Ensure mesh renderer and filter components are assigned
-        if (!meshHolder.gameObject.GetComponent<MeshFilter>()) {
-            meshHolder.gameObject.AddComponent<MeshFilter>();
-        }
-        if (!meshHolder.GetComponent<MeshRenderer>()) {
-            meshHolder.gameObject.AddComponent<MeshRenderer>();
-        }
-
-            // Render the line on screen
-        meshRenderer = meshHolder.GetComponent<MeshRenderer>();
-        meshFilter = meshHolder.GetComponent<MeshFilter>();
+        meshFilter = curve.AddComponent<MeshFilter>();
+        meshRenderer = curve.AddComponent<MeshRenderer>();
     }
 
+    /// <summary>
+    /// Assign a given public material to the 3D curve
+    /// </summary>
     void AssignMaterials() {
         if (pathMaterial != null) {
-            meshRenderer.sharedMaterials = new Material[] { pathMaterial };
+            // Assign given material to the 3 submeshes
+            meshRenderer.sharedMaterials = new Material[] { pathMaterial, pathMaterial, pathMaterial };
         }
     }
 
-    public void RenderBezierPath(BezierPath path) {
+    /// <summary>
+    /// Call necessary procedures in order to generate the curve mesh on the screen
+    /// </summary>
+    /// <param name="curve"></param>
+    public void RenderCurve(List<PathDrawer.Coords> curve) {
         AssignMeshComponents();
         AssignMaterials();
-        meshFilter.mesh = CreateMeshFromBezierPath(path);
-    }*/
+        meshFilter.mesh = CreateMeshFromCurve(curve);
+    }
 }
