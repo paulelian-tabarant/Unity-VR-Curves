@@ -23,7 +23,7 @@ public class PathDrawer : MonoBehaviour {
     private int pathIndex = 0;
 
     // Curves rendering
-    private PathMeshRenderer renderer;
+    private PathMeshRenderer curveRenderer;
 
     // File writing
     private readonly string filePath = "Assets/Output/data.txt";
@@ -42,7 +42,7 @@ public class PathDrawer : MonoBehaviour {
 
     private void Start() {
         pathsArray = new List<Coords>[MAXSIZE];
-        renderer = GetComponent<PathMeshRenderer>();
+        curveRenderer= GetComponent<PathMeshRenderer>();
     }
 
     private void Update() {
@@ -53,7 +53,7 @@ public class PathDrawer : MonoBehaviour {
         } else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
             AddPointToCurPath(Time.time, trackedObj.transform);
         } else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
-            renderer.RenderCurve(pathsArray[pathIndex]);
+            curveRenderer.RenderCurve(pathsArray[pathIndex]);
             EndCurPath();
         }
     }
