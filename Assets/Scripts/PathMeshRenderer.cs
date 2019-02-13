@@ -7,13 +7,13 @@ public class PathMeshRenderer : MonoBehaviour {
     public float pathThickness, pathWidth;
 
     // Path rendering
-    private GameObject pathMesh;
+    private List<GameObject> pathsMeshes;
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
 
     // Use this for initialization
     void Start() {
-        pathMesh = new GameObject("Path mesh");
+        pathsMeshes = new List<GameObject>();
     }
 
     // Methods below are inspired of the Path Creator source code by Sebastian Lague
@@ -115,24 +115,22 @@ public class PathMeshRenderer : MonoBehaviour {
         return mesh;
     }
 
-    // Add MeshRenderer and MeshFilter components to this gameobject if not already attached
+    /// <summary>
+    /// Add MeshFilter & MeshRenderer to a new GameObject, 
+    /// storing references into meshFilter & meshRenderer attributes for future uses
+    /// </summary>
     void AssignMeshComponents() {
-        Transform meshHolder = pathMesh.transform;
+        // Instantiate a new GameObject in order to store the new 3D curve 
+        GameObject curve = new GameObject("Curve number " + pathsMeshes.Count);
+        pathsMeshes.Add(curve);
+        Transform meshHolder = curve.transform;
 
-        meshHolder.transform.position = Vector3.zero;
-
-        meshHolder.transform.rotation = Quaternion.identity;
+        meshHolder.position = Vector3.zero;
+        meshHolder.rotation = Quaternion.identity;
 
         // Ensure mesh renderer and filter components are assigned
-        if (!meshHolder.gameObject.GetComponent<MeshFilter>()) {
-            meshHolder.gameObject.AddComponent<MeshFilter>();
-        }
-        if (!meshHolder.GetComponent<MeshRenderer>()) {
-            meshHolder.gameObject.AddComponent<MeshRenderer>();
-        }
-
-        meshRenderer = meshHolder.GetComponent<MeshRenderer>();
-        meshFilter = meshHolder.GetComponent<MeshFilter>();
+        meshFilter = curve.AddComponent<MeshFilter>();
+        meshRenderer = curve.AddComponent<MeshRenderer>();
     }
 
     /// <summary>
