@@ -11,8 +11,12 @@ public class DrawingToolCoords : MonoBehaviour {
         get { return SteamVR_Controller.Input((int)trackedObj.index); }
     }
 
+    [Header("Hint settings")]
     public GameObject coordsHintPrefab;
     public float coordsHintElevation;
+
+    [Header("Angle adjustment")]
+    public float adjustFactor = 1;
 
     private GameObject coordsHint;
     private Quaternion curOrientation = Quaternion.identity;
@@ -41,7 +45,12 @@ public class DrawingToolCoords : MonoBehaviour {
         }
         else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
             float xRot = Quaternion.ToEulerAngles(trackedObj.transform.rotation).x;
-            Vector3 hintEulerAngles = new Vector3(xRot, .0f, .0f);
+            // Augment or disminish impact of left controller orientation on drawing angle adjustment
+            float drawingAngle = xRot * adjustFactor;
+            // Adjusting drawing angle above or below 90 degrees is just nonsense
+            drawingAngle = drawingAngle > Mathf.PI / 2 ? Mathf.PI / 2 : drawingAngle;
+            drawingAngle = drawingAngle < -Mathf.PI / 2 ? -Mathf.PI / 2 : drawingAngle;
+            Vector3 hintEulerAngles = new Vector3(drawingAngle, .0f, .0f);
             Quaternion localXRotation = Quaternion.EulerAngles(hintEulerAngles);
             coordsHint.transform.rotation = otherControllerObj.transform.rotation * localXRotation;
             // Save new orientation for curves drawing
