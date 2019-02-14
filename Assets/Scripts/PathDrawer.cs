@@ -18,12 +18,20 @@ public class PathDrawer : MonoBehaviour {
             this.rot = rot;
         }
     }
+
+    // Path rendering
     private List<Coords>[] pathsArray;
     private const int MAXSIZE = 100;
     private int pathIndex = 0;
+
+    // Drawing coordinates setting script reference
     private DrawingToolCoords drawingToolCoords;
 
-    // Curves rendering
+    // For ease of manipulation of the XYZ local coordinates hint
+    public GameObject axesHintPrefab;
+    private GameObject axesHint;
+
+    // Curves rendering script reference
     private PathMeshRenderer curveRenderer;
 
     // File writing
@@ -39,11 +47,15 @@ public class PathDrawer : MonoBehaviour {
 
     private void Awake() {
         trackedObj = GetComponent<SteamVR_TrackedObject>();
+        axesHint = Instantiate(axesHintPrefab);
+        axesHint.transform.parent = trackedObj.transform;
+        axesHint.transform.position = trackedObj.transform.position;
+        AttachLeftController();
     }
 
     private void Start() {
         pathsArray = new List<Coords>[MAXSIZE];
-        curveRenderer= GetComponent<PathMeshRenderer>();
+        curveRenderer = GetComponent<PathMeshRenderer>();
     }
 
     private void Update() {
@@ -79,10 +91,12 @@ public class PathDrawer : MonoBehaviour {
     /// <param name="coord">The {position; rotation} transform to be added</param>
     private void AddPointToCurPath(float time, Transform coord) {
         // Get controller orientation & apply local rotation according to the drawing angle set by the user,
-        // only if left controller available
+        // same for drawing position offset
         Quaternion rotation = drawingToolCoords != null ? 
             coord.rotation * drawingToolCoords.GetDrawingOrientation() : coord.rotation;
-        Coords point = new Coords(time, coord.position, rotation);
+        Vector3 position = drawingToolCoords != null ?
+            coord.position + drawingToolCoords.GetDrawingPositionOffset() * coord.forward : coord.position;
+        Coords point = new Coords(time, position, rotation);
         pathsArray[pathIndex].Add(point);
         SavePoint(writer, point);
     }
@@ -121,5 +135,18 @@ public class PathDrawer : MonoBehaviour {
         GameObject leftControllerObj = GameObject.FindGameObjectWithTag("LeftController");
         if (leftControllerObj != null)
             drawingToolCoords = leftControllerObj.GetComponent<DrawingToolCoords>();
+    }
+
+    /// <summary>
+    /// Positions axes hint according to the current drawing coordinates
+    /// </summary>
+    public void UpdateAxesHint() {
+        if (drawingToolCoords == null)
+            return;
+        float k = drawingToolCoords.GetDrawingPositionOffset();
+        Vector3 offset = k * trackedObj.transform.forward;
+        Quaternion rotation = drawingToolCoords.GetDrawingOrientation();
+        axesHint.transform.position = trackedObj.transform.position + offset;
+        axesHint.transform.rotation = trackedObj.transform.rotation * rotation;
     }
 }

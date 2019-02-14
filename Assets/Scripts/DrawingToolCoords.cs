@@ -6,6 +6,7 @@ public class DrawingToolCoords : MonoBehaviour {
     // Stores a reference to the controller object data
     private SteamVR_TrackedObject trackedObj;
     private SteamVR_TrackedObject otherControllerObj;
+    private PathDrawer pathDrawer;
     // Accessing controller input via Controller reference for ease.
     private SteamVR_Controller.Device Controller {
         get { return SteamVR_Controller.Input((int)trackedObj.index); }
@@ -21,8 +22,10 @@ public class DrawingToolCoords : MonoBehaviour {
 
     private GameObject coordsHint;
     private Quaternion curOrientation = Quaternion.identity;
+    private Quaternion drawingOrientation = Quaternion.identity;
     private Vector3 triggerDownPosition, triggerDownAxis;
     private float curPosition = .0f;
+    private float drawingPosition = .0f;
     private float controllerLength = .15f;
 
     private void Awake() {
@@ -54,19 +57,23 @@ public class DrawingToolCoords : MonoBehaviour {
             coordsHint.transform.rotation = otherControllerObj.transform.rotation * localXRotation;
             // Position adjustment : positioning drawingPosition 0 at the middle of the controller length
             // then interpolated between bottom (-1) & top (+1)
-            float drawingPosition = GetNormalizedPosition(trackedObj.transform.position);
+            float hintPosition = GetNormalizedPosition(trackedObj.transform.position);
             coordsHint.transform.position = otherControllerObj.transform.position
                 + coordsHintElevation * otherControllerObj.transform.up
-                + (drawingPosition - 1) * (controllerLength / 2) * otherControllerObj.transform.forward;
-            // Save new coordinates for curves drawfing
+                + (hintPosition - 1) * (controllerLength / 2) * otherControllerObj.transform.forward;
+            // Save new coordinates for curves drawing
             curOrientation = localXRotation;
-            curPosition = drawingPosition;
+            curPosition = hintPosition;
         }
-        // Call procedures in order to remove hint display
+        // Call procedures in order to remove hint display & save drawing position settings
         else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
+            drawingPosition = curPosition;
+            drawingOrientation = curOrientation;
             if (coordsHint != null) {
                 Destroy(coordsHint);
             }
+            // Position axes hint according to the new drawing coordinates just set before
+            pathDrawer.UpdateAxesHint();
         }
     }
 
@@ -93,15 +100,32 @@ public class DrawingToolCoords : MonoBehaviour {
     // Get a reference to the other controller in order to access its position
     private void AttachOtherController() {
         GameObject otherController = GameObject.FindGameObjectWithTag("RightController");
-        if (otherController != null)
+        if (otherController != null) {
             otherControllerObj = otherController.GetComponent<SteamVR_TrackedObject>();
+            pathDrawer = otherController.GetComponent<PathDrawer>();
+        }
     }
 
     /// <summary>
     /// Get current orientation to be used for normals
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    /// The rotation to apply to the controller orientation in order to get the 
+    /// actual drawing orientation
+    /// </returns>
     public Quaternion GetDrawingOrientation() {
-        return curOrientation;
+        return drawingOrientation;
+    }
+
+    /// <summary>
+    /// Return the amount of displacement which should be done from the controller origin
+    /// to take into account drawing position adjustments
+    /// </summary>
+    /// <returns>
+    /// floating point number k such as the controller drawing offset on position should be set as
+    /// k * controller forward vector
+    /// </returns>
+    public float GetDrawingPositionOffset() {
+        return (drawingPosition - 1) * (controllerLength / 2);
     }
 }
