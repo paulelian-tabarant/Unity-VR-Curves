@@ -19,20 +19,21 @@ public class DrawingToolCoords : MonoBehaviour {
 
     private void Awake() {
         trackedObj = GetComponent<SteamVR_TrackedObject>();
-        GameObject otherController = GameObject.FindGameObjectWithTag("RightController");
-        otherControllerObj = otherController.GetComponent<SteamVR_TrackedObject>();
+        AttachOtherController();
     }
 
     // Use this for initialization
     void Start () {
-		
 	}
 	
 	// Update is called once per frame
 	void Update () {
         // Call procedures for drawing tool coordinates adjustment
         if (Controller.GetTouchDown(SteamVR_Controller.ButtonMask.Trigger)) {
-            if (coordsHintPrefab != null) {
+            if (otherControllerObj == null) {
+                AttachOtherController();
+            }
+            if (coordsHintPrefab != null && otherControllerObj != null) {
                 coordsHint = Instantiate(coordsHintPrefab);
                 coordsHint.transform.parent = otherControllerObj.transform;
                 coordsHint.transform.position = otherControllerObj.transform.position + coordsHintElevation * otherControllerObj.transform.up;
@@ -43,17 +44,27 @@ public class DrawingToolCoords : MonoBehaviour {
             Vector3 hintEulerAngles = new Vector3(xRot, .0f, .0f);
             Quaternion localXRotation = Quaternion.EulerAngles(hintEulerAngles);
             coordsHint.transform.rotation = otherControllerObj.transform.rotation * localXRotation;
-        }
-        // Call procedures in order to apply changes & remove hint display
-        else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
             // Save new orientation for curves drawing
-            curOrientation = coordsHint.transform.rotation;
+            curOrientation = localXRotation;
+        }
+        // Call procedures in order to remove hint display
+        else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
             if (coordsHint != null) {
                 Destroy(coordsHint);
             }
         }
     }
 
+    // Get a reference to the other controller in order to access its position
+    private void AttachOtherController() {
+        GameObject otherController = GameObject.FindGameObjectWithTag("RightController");
+        otherControllerObj = otherController.GetComponent<SteamVR_TrackedObject>();
+    }
+
+    /// <summary>
+    /// Get current orientation to be used for normals
+    /// </summary>
+    /// <returns></returns>
     public Quaternion GetDrawingOrientation() {
         return curOrientation;
     }

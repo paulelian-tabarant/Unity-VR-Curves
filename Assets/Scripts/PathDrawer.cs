@@ -43,13 +43,15 @@ public class PathDrawer : MonoBehaviour {
 
     private void Start() {
         pathsArray = new List<Coords>[MAXSIZE];
-        drawingToolCoords = GameObject.FindGameObjectWithTag("LeftController").GetComponent<DrawingToolCoords>();
         curveRenderer= GetComponent<PathMeshRenderer>();
     }
 
     private void Update() {
         // Trigger pressed for the first time, should create a new line
         if (Controller.GetTouchDown(SteamVR_Controller.ButtonMask.Trigger)) {
+            if (drawingToolCoords == null) {
+                AttachLeftController();
+            }
             CreateNewPath(trackedObj.transform);
         // Trigger held down while already drawing a line, should add a new point
         } else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
@@ -76,7 +78,10 @@ public class PathDrawer : MonoBehaviour {
     /// </summary>
     /// <param name="coord">The {position; rotation} transform to be added</param>
     private void AddPointToCurPath(float time, Transform coord) {
-        Quaternion rotation = drawingToolCoords.GetDrawingOrientation();
+        // Get controller orientation & apply local rotation according to the drawing angle set by the user,
+        // only if left controller available
+        Quaternion rotation = drawingToolCoords != null ? 
+            coord.rotation * drawingToolCoords.GetDrawingOrientation() : coord.rotation;
         Coords point = new Coords(time, coord.position, rotation);
         pathsArray[pathIndex].Add(point);
         SavePoint(writer, point);
@@ -110,5 +115,9 @@ public class PathDrawer : MonoBehaviour {
         writer.Close();
         if (pathIndex < MAXSIZE)
             pathIndex++;
+    }
+
+    private void AttachLeftController() {
+        drawingToolCoords = GameObject.FindGameObjectWithTag("LeftController").GetComponent<DrawingToolCoords>();
     }
 }
