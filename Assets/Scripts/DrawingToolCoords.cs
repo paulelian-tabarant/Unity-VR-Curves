@@ -15,11 +15,15 @@ public class DrawingToolCoords : MonoBehaviour {
     public GameObject coordsHintPrefab;
     public float coordsHintElevation;
 
-    [Header("Angle adjustment")]
-    public float adjustFactor = 1;
+    [Header("Coordinates adjustment facilities")]
+    public float angleFactor = 1.0f;
+    public float posFactor = .1f;
 
     private GameObject coordsHint;
     private Quaternion curOrientation = Quaternion.identity;
+    private Vector3 triggerDownPosition, triggerDownAxis;
+    private float curPosition = .0f;
+    private float controllerLength = .15f;
 
     private void Awake() {
         trackedObj = GetComponent<SteamVR_TrackedObject>();
@@ -40,21 +44,23 @@ public class DrawingToolCoords : MonoBehaviour {
             if (coordsHintPrefab != null && otherControllerObj != null) {
                 coordsHint = Instantiate(coordsHintPrefab);
                 coordsHint.transform.parent = otherControllerObj.transform;
-                coordsHint.transform.position = otherControllerObj.transform.position + coordsHintElevation * otherControllerObj.transform.up;
+                triggerDownPosition = trackedObj.transform.position;
+                triggerDownAxis = trackedObj.transform.forward;
             }
         }
         else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
-            float xRot = Quaternion.ToEulerAngles(trackedObj.transform.rotation).x;
-            // Augment or disminish impact of left controller orientation on drawing angle adjustment
-            float drawingAngle = xRot * adjustFactor;
-            // Adjusting drawing angle above or below 90 degrees is just nonsense
-            drawingAngle = drawingAngle > Mathf.PI / 2 ? Mathf.PI / 2 : drawingAngle;
-            drawingAngle = drawingAngle < -Mathf.PI / 2 ? -Mathf.PI / 2 : drawingAngle;
-            Vector3 hintEulerAngles = new Vector3(drawingAngle, .0f, .0f);
-            Quaternion localXRotation = Quaternion.EulerAngles(hintEulerAngles);
+            // Rotation adjustment
+            Quaternion localXRotation = GetLocalXRotation(trackedObj.transform.rotation);
             coordsHint.transform.rotation = otherControllerObj.transform.rotation * localXRotation;
-            // Save new orientation for curves drawing
+            // Position adjustment : positioning drawingPosition 0 at the middle of the controller length
+            // then interpolated between bottom (-1) & top (+1)
+            float drawingPosition = GetNormalizedPosition(trackedObj.transform.position);
+            coordsHint.transform.position = otherControllerObj.transform.position
+                + coordsHintElevation * otherControllerObj.transform.up
+                + (drawingPosition - 1) * (controllerLength / 2) * otherControllerObj.transform.forward;
+            // Save new coordinates for curves drawfing
             curOrientation = localXRotation;
+            curPosition = drawingPosition;
         }
         // Call procedures in order to remove hint display
         else if (Controller.GetTouchUp(SteamVR_Controller.ButtonMask.Trigger)) {
@@ -64,10 +70,31 @@ public class DrawingToolCoords : MonoBehaviour {
         }
     }
 
+    private Quaternion GetLocalXRotation(Quaternion rotation) {
+        float xRot = Quaternion.ToEulerAngles(rotation).x;
+        // Augment or disminish impact of left controller orientation on drawing angle adjustment
+        float drawingAngle = xRot * angleFactor;
+        // Adjusting drawing angle above or below 90 degrees is just nonsense
+        drawingAngle = drawingAngle > Mathf.PI / 2 ? Mathf.PI / 2 : drawingAngle;
+        drawingAngle = drawingAngle < -Mathf.PI / 2 ? -Mathf.PI / 2 : drawingAngle;
+        Vector3 hintEulerAngles = new Vector3(drawingAngle, .0f, .0f);
+        return Quaternion.EulerAngles(hintEulerAngles);
+    }
+
+    private float GetNormalizedPosition(Vector3 position) {
+        Vector3 disVector = trackedObj.transform.position - triggerDownPosition;
+        float disProjection = Vector3.Dot(disVector, triggerDownAxis);
+        disProjection /= posFactor;
+        disProjection = disProjection < -1 ? -1 : disProjection;
+        disProjection = disProjection > 1 ? 1 : disProjection;
+        return disProjection;
+    }
+
     // Get a reference to the other controller in order to access its position
     private void AttachOtherController() {
         GameObject otherController = GameObject.FindGameObjectWithTag("RightController");
-        otherControllerObj = otherController.GetComponent<SteamVR_TrackedObject>();
+        if (otherController != null)
+            otherControllerObj = otherController.GetComponent<SteamVR_TrackedObject>();
     }
 
     /// <summary>

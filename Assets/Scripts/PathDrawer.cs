@@ -118,6 +118,8 @@ public class PathDrawer : MonoBehaviour {
     }
 
     private void AttachLeftController() {
-        drawingToolCoords = GameObject.FindGameObjectWithTag("LeftController").GetComponent<DrawingToolCoords>();
+        GameObject leftControllerObj = GameObject.FindGameObjectWithTag("LeftController");
+        if (leftControllerObj != null)
+            drawingToolCoords = leftControllerObj.GetComponent<DrawingToolCoords>();
     }
 }
