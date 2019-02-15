@@ -26,6 +26,8 @@ public class PathDrawer : MonoBehaviour {
 
     // Drawing coordinates setting script reference
     private DrawingToolCoords drawingToolCoords;
+    // Curve width setting script reference
+    private CurveWidth curveWidth;
 
     // For ease of manipulation of the XYZ local coordinates hint
     public GameObject axesHintPrefab;
@@ -56,6 +58,7 @@ public class PathDrawer : MonoBehaviour {
     private void Start() {
         pathsArray = new List<Coords>[MAXSIZE];
         curveRenderer = GetComponent<PathMeshRenderer>();
+        curveWidth = GetComponent<CurveWidth>();
     }
 
     private void Update() {
@@ -64,7 +67,7 @@ public class PathDrawer : MonoBehaviour {
             if (drawingToolCoords == null) {
                 AttachLeftController();
             }
-            CreateNewPath(trackedObj.transform);
+            CreateNewPath(curveWidth.GetCurValue(), trackedObj.transform);
         // Trigger held down while already drawing a line, should add a new point
         } else if (Controller.GetTouch(SteamVR_Controller.ButtonMask.Trigger)) {
             AddPointToCurPath(Time.time, trackedObj.transform);
@@ -78,11 +81,13 @@ public class PathDrawer : MonoBehaviour {
     /// Initialize new path handling.
     /// </summary>
     /// <param name="coord">The 2-anchor path initial position</param>
-    private void CreateNewPath(Transform coord) {
+    private void CreateNewPath(float width, Transform coord) {
         pathsArray[pathIndex] = new List<Coords>();
         // Clear file content only on the first path drawing to erase previous file content
         bool append = pathIndex != 0;
         writer = new StreamWriter(filePath, append);
+        // Start curve block by writing current drawing width
+        writer.WriteLine(width);
     }
 
     /// <summary>

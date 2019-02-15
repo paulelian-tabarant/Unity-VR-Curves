@@ -4,16 +4,23 @@ using UnityEngine;
 public class PathMeshRenderer : MonoBehaviour {
     [Header("Path display settings")]
     public Material pathMaterial;
-    public float pathThickness, pathWidth;
+    public float pathThickness;
 
     // Path rendering
     private List<GameObject> pathsMeshes;
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
 
+    // Curve width setting script reference
+    private CurveWidth curveWidth;
+
     // Use this for initialization
     void Start() {
         pathsMeshes = new List<GameObject>();
+    }
+
+    private void Awake() {
+        curveWidth = GetComponent<CurveWidth>();
     }
 
     // Methods below are inspired of the Path Creator source code by Sebastian Lague
@@ -54,6 +61,8 @@ public class PathMeshRenderer : MonoBehaviour {
             Vector3 localUp = normal;
             Vector3 localRight = Vector3.Cross(tangent, normal);
 
+            // Get selected curve width to render the corresponding mesh width
+            float pathWidth = curveWidth.GetCurValue() / 2;
             Vector3 leftSide = vertex - localRight * Mathf.Abs(pathWidth);
             Vector3 rightSide = vertex + localRight * Mathf.Abs(pathWidth);
 
